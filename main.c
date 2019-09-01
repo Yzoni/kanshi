@@ -435,8 +435,12 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	while (state.running && wl_display_dispatch(display) != -1) {
-		// This space intentionally left blank
+	if (argc > 1) {
+        wl_display_dispatch(display);
+    } else {
+        while (state.running && wl_display_dispatch(display) != -1) {
+            // This space intentionally left blank
+        }
 	}
 
 	return EXIT_SUCCESS;
