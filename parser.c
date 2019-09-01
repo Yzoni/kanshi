@@ -22,7 +22,9 @@ static const char *token_type_str(enum kanshi_token_type t) {
 		return "string";
 	case KANSHI_TOKEN_NEWLINE:
 		return "newline";
-	}
+    case KANSHI_TOKEN_COMMENT:
+        return "comment";
+    }
 	assert(0);
 }
 
@@ -98,7 +100,7 @@ static bool parser_read_str(struct kanshi_parser *parser) {
 			return false;
 		}
 
-		if (isspace(ch) || ch == '{' || ch == '}' || ch == '\0') {
+		if (isspace(ch) || ch == '{' || ch == '}' || ch == '\0' || ch == '#') {
 			parser->tok_str[parser->tok_str_len] = '\0';
 			return true;
 		}
@@ -125,8 +127,11 @@ static bool parser_next_token(struct kanshi_parser *parser) {
 		} else if (ch == '\n') {
 			parser->tok_type = KANSHI_TOKEN_NEWLINE;
 			return true;
+        } else if (ch == '#') {
+            parser->tok_type = KANSHI_TOKEN_COMMENT;
+            return true;
 		} else if (isspace(ch)) {
-			continue;
+            continue;
 		} else if (ch == '"') {
 			parser->tok_type = KANSHI_TOKEN_STR;
 			parser->tok_str_len = 0;
@@ -230,6 +235,16 @@ static bool parse_float(float *dst, const char *str) {
 	return true;
 }
 
+static bool handle_comment(struct kanshi_parser *parser) {
+    while (1) {
+        int ch = parser_read_char(parser);
+        if  (ch == '\n') {
+            parser->tok_type = KANSHI_TOKEN_NEWLINE;
+            return true;
+        }
+    }
+}
+
 static bool parse_transform(enum wl_output_transform *dst, const char *str) {
 	if (strcmp(str, "normal") == 0) {
 		*dst = WL_OUTPUT_TRANSFORM_NORMAL;
@@ -328,6 +343,9 @@ static struct kanshi_profile_output *parse_profile_output(
 				}
 			}
 			break;
+        case KANSHI_TOKEN_COMMENT:
+            handle_comment(parser);
+            return output;
 		case KANSHI_TOKEN_NEWLINE:
 			return output;
 		default:
@@ -352,6 +370,9 @@ static struct kanshi_profile *parse_profile(struct kanshi_parser *parser) {
 		}
 
 		switch (parser->tok_type) {
+        case KANSHI_TOKEN_COMMENT:
+            handle_comment(parser);
+            break;
 		case KANSHI_TOKEN_RBRACKET:
 			return profile;
 		case KANSHI_TOKEN_STR:;
@@ -397,6 +418,9 @@ static struct kanshi_config *_parse_config(struct kanshi_parser *parser) {
 		} else if (isspace(ch)) {
 			parser_read_char(parser);
 			continue;
+		} else if (ch == '#') {
+		    handle_comment(parser);
+		    continue;
 		}
 
 		struct kanshi_profile *profile = parse_profile(parser);

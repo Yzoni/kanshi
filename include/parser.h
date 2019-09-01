@@ -10,6 +10,7 @@ enum kanshi_token_type {
 	KANSHI_TOKEN_RBRACKET,
 	KANSHI_TOKEN_STR,
 	KANSHI_TOKEN_NEWLINE,
+	KANSHI_TOKEN_COMMENT,
 };
 
 struct kanshi_parser {
